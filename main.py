@@ -143,7 +143,7 @@ for topic in zip(final_dfs, [' '.join(x) for x in list(product(topics, specifici
     safe_test = df.iloc[-50:, 0].to_list()
     unsafe_test = df.iloc[-50:, 1].to_list()
     contrastive= list(training_prompts.unstack().values)
-    scores, config = SAE_baseline_method(contrastive, safe_test, unsafe_test, topic)
+    config, scores = SAE_baseline_method(contrastive, safe_test, unsafe_test, topic)
     scores_list.append(scores)
     config_list.append(config)
     config_df = pd.DataFrame(config)

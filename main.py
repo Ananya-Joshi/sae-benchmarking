@@ -19,7 +19,7 @@ from transformers import logging
 from io import StringIO
 import transformer_lens
 from sae_lens import HookedSAETransformer, SAE
-
+from itertools import product
 
 
 #Cosine metric-base baseline
@@ -122,3 +122,32 @@ def SAE_baseline_method(contrastive_prompts_training, safe_test, unsafe_test, to
     contam_scores = [np.dot(x.iloc[scores.index], scores) for _, x in normed_final_test_latents.iterrows()]
     contam_list.append(contam_score)
   return pd.DataFrame(contam_list), scores
+
+
+
+topics = ["violent examples", "inappropriate themes"]
+specificity = ["for toddlers", "for elders with a heart condition"]
+
+
+#Datasets available upon request due to sensitivity of data. 
+for topic in zip(final_dfs, [' '.join(x) for x in list(product(topics, specificity))]):
+  df = pd.read_csv(f"Dataset/{topic}", index_col=0)
+  df = df[df.apply(lambda x: False if 'unsafe' in x[0] else True, axis=1)]
+  df = df[df.apply(lambda x: False if 'safe' in x[1] else True, axis=1)]
+  df = df.reset_index(drop=True)
+  scores_list = []
+  config_list = []
+  n_list  = [1, 10, 50, 100, 500]
+  for n in n_list:
+    training_prompts = df.iloc[:n, :]
+    safe_test = df.iloc[-50:, 0].to_list()
+    unsafe_test = df.iloc[-50:, 1].to_list()
+    contrastive= list(training_prompts.unstack().values)
+    scores, config = SAE_baseline_method(contrastive, safe_test, unsafe_test, topic)
+    scores_list.append(scores)
+    config_list.append(config)
+    config_df = pd.DataFrame(config)
+    config_df.to_csv(f'{topic}_{n}_config.csv')
+    scores_df = pd.DataFrame(scores_list)
+    scores_df.to_csv(f'{topic}_{n}_scores.csv')
+
